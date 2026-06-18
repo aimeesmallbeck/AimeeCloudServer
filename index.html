@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AimeeCloud  -  Conversational AI Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: #e0e0e0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        h1 {
+            font-size: 3rem;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        h2 {
+            font-size: 2rem;
+            color: #fff;
+            margin: 50px 0 20px;
+            border-bottom: 2px solid #4fc3f7;
+            padding-bottom: 10px;
+        }
+        h3 {
+            font-size: 1.4rem;
+            color: #81d4fa;
+            margin: 25px 0 15px;
+        }
+        p {
+            color: #e0e0e0;
+            margin-bottom: 15px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            font-size: 1.2rem;
+            margin-bottom: 50px;
+        }
+        .hero-section {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            margin-bottom: 40px;
+        }
+        .robot-showcase {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+        .robot-card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        /* Header */
+        header {
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(79, 195, 247, 0.3);
+            padding: 12px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+        .header-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .header-logo img {
+            height: 40px;
+            border-radius: 8px;
+        }
+        .header-logo span {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .contact-btn {
+            background: linear-gradient(135deg, #00979D, #007a7f);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+            white-space: nowrap;
+        }
+        .contact-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 151, 157, 0.4);
+        }
+
+        /* Hide original h1 logo */
+        body > .container > h1 img {
+            display: none;
+        }
+
+        .robot-card img {
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .robot-card h3 {
+            color: #fff;
+            margin-top: 0;
+        }
+        .specs-table {
+            width: 100%;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+        .specs-table td {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .specs-table td:first-child {
+            color: #aaa;
+            width: 40%;
+        }
+        .specs-table td:last-child {
+            color: #4fc3f7;
+        }
+        .architecture-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+        .architecture-section img {
+            width: 100%;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .layer-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .layer {
+            padding: 15px 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            color: #fff;
+        }
+        .layer-aimeecloud { background: linear-gradient(90deg, #7c4dff, #536dfe); }
+        .layer-skill { background: linear-gradient(90deg, #00bcd4, #26c6da); }
+        .layer-ros2 { background: linear-gradient(90deg, #ff9800, #ffb74d); }
+        .layer-brick { background: linear-gradient(90deg, #4caf50, #81c784); }
+        .layer-node { background: linear-gradient(90deg, #e91e63, #f06292); }
+        .layer-hardware { background: linear-gradient(90deg, #9e9e9e, #bdbdbd); color: #e0e0e0; }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .status-card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 25px;
+        }
+        .status-card h3 {
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-card.completed h3 { color: #66bb6a; }
+        .status-card.development h3 { color: #ffb74d; }
+        .status-card.pending h3 { color: #ef5350; }
+        
+        .progress-section {
+            background: rgba(255,255,255,0.08);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+        .progress-item {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            padding: 10px 0;
+        }
+        .progress-item .icon {
+            width: 30px;
+            font-size: 1.2rem;
+        }
+        .progress-item .text {
+            color: #e0e0e0;
+        }
+        .progress-item.complete .icon { color: #66bb6a; }
+        .progress-item.working .icon { color: #ffb74d; }
+        
+        .neuro-section {
+            background: linear-gradient(135deg, rgba(124,77,255,0.2), rgba(83,109,254,0.2));
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            border: 1px solid rgba(124,77,255,0.3);
+        }
+        .neuro-section h3 {
+            color: #b388ff;
+        }
+        
+        .gameplay-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        .gameplay-section img {
+            width: 100%;
+            border-radius: 10px;
+        }
+        
+        .feature-list {
+            list-style: none;
+            margin: 15px 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .feature-list li:before {
+            content: "▸";
+            color: #4fc3f7;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        th {
+            background: rgba(255,255,255,0.1);
+            color: #4fc3f7;
+        }
+        td {
+            color: #e0e0e0;
+        }
+        td:first-child {
+            color: #aaa;
+        }
+        
+        .highlight {
+            color: #4fc3f7;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            .robot-showcase { grid-template-columns: 1fr; }
+            .gameplay-section { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <a href="/" class="header-logo">
+                <img src="aimeecloud-logo.png" alt="AimeeCloud">
+                <span>AimeeCloud</span>
+            </a>
+            <nav style="display:flex;align-items:center;gap:16px;">
+                <a href="/api-keys.html" id="navApiKeys" style="color:#aaa;text-decoration:none;font-size:0.9rem;display:none;">API Keys</a>
+                <a href="/invite.html" id="navRequestInvite" style="color:#4fc3f7;text-decoration:none;font-size:0.9rem;">Request Invite</a>
+                <a href="/login.html" id="navSignIn" class="contact-btn">Sign In</a>
+                <a href="mailto:ssmallbeck@gmail.com" class="contact-btn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);">Contact Us</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1><img src="aimeecloud-logo.png" alt="AimeeCloud" style="height: 240px; vertical-align: middle; border-radius: 15px; padding: 20px; background: rgba(255,255,255,0.1);"></h1>
+        <p class="subtitle">Conversational AI Platform for Robotics, Education & Social Assistance</p>
+        
+        <div class="hero-section">
+            <p><strong>No screens. No apps. No joysticks.</strong></p>
+            <p>Meet <strong>Aimee</strong> - a voice-first AI companion built on Arduino UNO Q that brings cloud intelligence to the physical world.</p>
+            <p>Through natural conversation, users receive social assistance, play games, and learn - no coding, apps, or joysticks required.</p>
+        </div>
+        
+        <!-- Meet the Robots -->
+        <h2 id="robots">Meet the Robots</h2>
+        <p>AimeeCloud is designed to adapt to the physical capabilities of the device using it  -  from a web browser to a humanoid robot. To that end, we have developed two initial test beds with different capabilities.</p>
+        
+        <div class="robot-showcase">
+            <div class="robot-card">
+                <img src="Aimee.jpg" alt="Aimee Robot">
+                <h3>Aimee (Main Robot)</h3>
+                <p>The primary robot platform  -  a UGV02 rover with a RoArm-M3 robotic arm for manipulation tasks.</p>
+                <table class="specs-table">
+                    <tr><td>Chassis</td><td>Waveshare UGV02</td></tr>
+                    <tr><td>Arm</td><td>Waveshare RoArm-M3</td></tr>
+                    <tr><td>Main Camera</td><td>OBSBOT Tiny 2</td></tr>
+                    <tr><td>Arm Camera</td><td>OV7670</td></tr>
+                    <tr><td>LiDAR</td><td>DTOF STL-19P (Time-of-Flight)</td></tr>
+                    <tr><td>Processor</td><td>Arduino UNO Q (4GB)</td></tr>
+                </table>
+            </div>
+            
+            <div class="robot-card">
+                <img src="Minnie.jpg" alt="Minnie Robot">
+                <h3>Minnie (Rover)</h3>
+                <p>A smaller, faster rover for navigation tasks and environments where compact size matters.</p>
+                <table class="specs-table">
+                    <tr><td>Chassis</td><td>Waveshare Wave Rover</td></tr>
+                    <tr><td>Arm</td><td>None</td></tr>
+                    <tr><td>Camera</td><td>OBSBOT Tiny 2</td></tr>
+                    <tr><td>LiDAR</td><td>DTOF STL-19P (Time-of-Flight)</td></tr>
+                    <tr><td>Processor</td><td>Arduino UNO Q (4GB)</td></tr>
+                </table>
+            </div>
+        </div>
+        
+        <!-- AimeeCloud Capabilities -->
+        <h2 id="capabilities">AimeeCloud Capabilities</h2>
+        
+        <div class="status-grid">
+            <div class="status-card completed">
+                <h3>Social Assistance</h3>
+                <ul class="feature-list">
+                    <li><strong>Voice Pipeline:</strong> <span class="highlight">Complete</span></li>
+                    <li>Companion Chat</li>
+                    <li>Emergency Alerts</li>
+                    <li>Cognitive Engagement</li>
+                    <li>Face Recognition</li>
+                </ul>
+            </div>
+            
+            <div class="status-card development">
+                <h3>Game Functionality</h3>
+                <ul class="feature-list">
+                    <li><strong>Game Engine:</strong> <span class="highlight">Complete</span></li>
+                    <li><strong>Tic-Tac-Toe:</strong> <span class="highlight">Testing</span></li>
+                    <li><strong>Yahtzee:</strong> <span class="highlight">Testing</span></li>
+                    <li><strong>Candyland:</strong> <span class="highlight">Testing</span></li>
+                    <li>Chess & Strategy Games</li>
+                    <li>Educational Games</li>
+                </ul>
+            </div>
+            
+            <div class="status-card pending">
+                <h3>Education</h3>
+                <ul class="feature-list">
+                    <li>Interactive Learning</li>
+                    <li>Real-time Explanations</li>
+                    <li>Progressive Challenges</li>
+                    <li>Code-Free Robotics</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Platform Architecture -->
+        <h2 id="architecture">Platform Architecture</h2>
+        <p>AimeeCloud uses a <strong>Distributed Agent Architecture</strong>  -  a hybrid architecture where the robot's local capabilities work seamlessly with cloud intelligence. The robot handles real-time tasks independently, while complex reasoning and learning happen in the cloud.</p>
+        
+        <div class="architecture-section">
+            <img src="Aimee-Architecture.jpg" alt="AimeeCloud Architecture">
+            
+            <h3>Layer Structure</h3>
+            <div class="layer-diagram">
+                <div class="layer layer-aimeecloud"> AimeeCloud  -  Cloud AI (LLM, Memory, Learning)</div>
+                <div class="layer layer-skill">🧠 Skill Layer  -  Domain-Specific Capabilities</div>
+                <div class="layer layer-ros2">ROS2  -  Message Bus & State Management</div>
+                <div class="layer layer-brick">🧱 Brick Layer  -  Arduino App Lab Bricks</div>
+                <div class="layer layer-node">📦 Node Layer  -  Individual ROS2 Nodes</div>
+                <div class="layer layer-hardware"> Hardware  -  Motors, Sensors, Cameras</div>
+            </div>
+            
+            <h3>How It Works</h3>
+            <p>When you speak to Aimee, your voice is captured on-device and sent to the cloud. The LLM processes your intent, determines what actions are needed, and sends commands back down the stack. Local execution happens on the UNO Q for real-time response, while complex reasoning lives in the cloud.</p>
+            
+            <table>
+                <tr>
+                    <th>Capability</th>
+                    <th>Robot (Local)</th>
+                    <th>AimeeCloud (Cloud)</th>
+                </tr>
+                <tr>
+                    <td>Edge AI (Wake Word)</td>
+                    <td class="highlight">✓ On-device</td>
+                    <td> - </td>
+                </tr>
+                <tr>
+                    <td>Simple Commands</td>
+                    <td class="highlight">✓ Local execution</td>
+                    <td> - </td>
+                </tr>
+                <tr>
+                    <td>Motor/Servo Control</td>
+                    <td class="highlight">✓ Real-time (MCU)</td>
+                    <td> - </td>
+                </tr>
+                <tr>
+                    <td>Sensor Reading</td>
+                    <td class="highlight">✓ Real-time (MCU)</td>
+                    <td> - </td>
+                </tr>
+                <tr>
+                    <td>Safety Responses</td>
+                    <td class="highlight">✓ Emergency stop</td>
+                    <td> - </td>
+                </tr>
+                <tr>
+                    <td>Natural Conversation</td>
+                    <td> - </td>
+                    <td class="highlight">✓ Cloud LLM</td>
+                </tr>
+                <tr>
+                    <td>Complex Queries</td>
+                    <td> - </td>
+                    <td class="highlight">✓ Full AI reasoning</td>
+                </tr>
+                <tr>
+                    <td>Storytelling</td>
+                    <td> - </td>
+                    <td class="highlight">✓ On-the-fly generation</td>
+                </tr>
+                <tr>
+                    <td>Speech-to-Text (STT)</td>
+                    <td class="highlight">✓ On-device (Vosk)</td>
+                    <td> - </td>
+                </tr>
+                <tr>
+                    <td>Local LLM</td>
+                    <td class="highlight">✓ On-device (Qwen 0.5B)</td>
+                    <td> - </td>
+                </tr>
+                <tr>
+                    <td>Face Recognition</td>
+                    <td class="highlight">✓ On-device (Edge AI)</td>
+                    <td> - </td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Gameplay Setup -->
+        <h2>Gameplay & Training</h2>
+        
+        <p>Currently testing with <strong>Tic-Tac-Toe</strong>, <strong>Yahtzee</strong>, and <strong>Candyland</strong>  -  each teaching the system different physical manipulation skills.</p>
+        
+        <div class="gameplay-section">
+            <div>
+                <img src="gameplay.jpg" alt="Gameplay Setup">
+            </div>
+            <div>
+            </div>
+        </div>
+        
+        <!-- Neuro-Symbiotic Agent Structure (Gameplay Training) -->
+        <div class="neuro-section">
+            <h3>Neuro-Symbiotic Agent Structure</h3>
+            <p><strong>LLMs are surprisingly bad at managing and playing games.</strong> How can an agent that can code the most complex systems not even be able to play Tic-Tac-Toe? The answer lies in how they actually work.</p>
+            <p>This discrepancy highlights one of the most fundamental misunderstandings about how Large Language Models (LLMs) actually work. <strong>Language is a proxy for intelligence in humans, but it is an illusion of intelligence in AI.</strong></p>
+            <p>To understand why an agent might struggle with Yahtzee despite having a great instruction manual, we have to look at the difference between <strong>Probabilistic Generation</strong> and <strong>Symbolic Logic</strong>.</p>
+            
+            <h4 style="color:#fff; margin:20px 0 10px;">The Improvisational Actor vs. The Accountant</h4>
+            <p>Think of an LLM as a brilliant <strong>improvisational actor</strong>. If you ask it to act like a grandmaster chess player or a master coder, it will brilliantly sound like one. It uses its massive training data to probabilistically guess the most likely next word in a sequence. This makes it incredible at writing essays, translating languages, and writing code.</p>
+            <p>However, playing a game like Yahtzee requires an <strong>Accountant</strong>  -  a system that maintains absolute, rigid truth over time (State) and applies strict mathematical rules (Symbolic Logic).</p>
+            
+            <h4 style="color:#fff; margin:20px 0 10px;">Why the Improvisational Actor Fails at Being the Accountant</h4>
+            <ul class="feature-list">
+                <li><strong>The Illusion of Memory:</strong> LLMs do not have internal variables. Their "memory" is just the chat history (Context Window). Every turn, the LLM has to re-read the entire conversation and probabilistically infer the current state. As the game goes on, it starts hallucinating the state.</li>
+                <li><strong>Math is Not Language:</strong> LLMs do not calculate; they predict. If you roll [4, 4, 4, 2, 1], a traditional program sums this to 15 instantly. An LLM tries to guess what the next token should be based on similar text it has seen. It's remarkably bad at basic arithmetic.</li>
+                <li><strong>Strategy Requires Forward Simulation:</strong> Grandmaster strategy requires branching logic. A traditional game AI uses algorithms like Minimax or Monte Carlo Tree Search to simulate hundreds of possible future rolls. An LLM operates linearly  -  it generates word by word, moving forward.</li>
+            </ul>
+            
+            <h4 style="color:#fff; margin:20px 0 10px;">How to Fix the Architecture</h4>
+            <p>We are fixing this by changing the architecture from a "Pure LLM" to a <strong>Neuro-Symbolic Agent</strong>. We separate the "Brain" from the "Scorekeeper":</p>
+            <ul class="feature-list">
+                <li><strong>The Game Engine (Python):</strong> Holds the absolute truth of the game (JSON state). Handles all math, validates legal moves, and tracks the score.</li>
+                <li><strong>The LLM as Translator/Decider:</strong> Does not keep track of the game. Every turn, the engine injects the exact current JSON state into the prompt.</li>
+                <li><strong>Structured Output:</strong> Aimee replies with structured commands (e.g., <code>{"action": "hold", "dice": [0, 1]}</code>), which the Game Engine executes and validates.</li>
+            </ul>
+            <p>If Aimee tries to make an illegal move, the strict Game Engine rejects it, updates the prompt, and forces her to re-evaluate. This is the Neuro-Symbiotic Agent Structure  -  cloud intelligence with local game state truth.</p>
+        </div>
+        
+        <!-- Development Progress -->
+        <h2 id="progress">Development Progress</h2>
+        
+        <div class="progress-section">
+            <h3>✅ Completed</h3>
+            <div class="progress-item complete">
+                <span class="icon">✓</span>
+                <span class="text">UNO Q connection via DO server tunnel</span>
+            </div>
+            <div class="progress-item complete">
+                <span class="icon">✓</span>
+                <span class="text">Hello World LED matrix app</span>
+            </div>
+            <div class="progress-item complete">
+                <span class="icon">✓</span>
+                <span class="text">Webhook communication system</span>
+            </div>
+            <div class="progress-item complete">
+                <span class="icon">✓</span>
+                <span class="text">Voice pipeline (STT → LLM → TTS)</span>
+            </div>
+            <div class="progress-item complete">
+                <span class="icon">✓</span>
+                <span class="text">Local LLM deployment (Qwen 0.5B)</span>
+            </div>
+            <div class="progress-item complete">
+                <span class="icon">✓</span>
+                <span class="text">ROS2 implementation (full stack)</span>
+            </div>
+            <div class="progress-item complete">
+                <span class="icon">✓</span>
+                <span class="text">All nodes and bricks developed</span>
+            </div>
+            <div class="progress-item complete">
+                <span class="icon">✓</span>
+                <span class="text">Game engine complete</span>
+            </div>
+            
+            
+            <div class="progress-item complete">
+                <span class="icon">✓</span>
+                <span class="text">Hardware/Software Integration  -  connecting robot hardware to AimeeCloud</span>
+            </div>
+            
+            <h3 style="margin-top: 30px;">In Development</h3>
+            <div class="progress-item">
+                <span class="icon">⏳</span>
+                <span class="text">Face recognition module</span>
+            </div>
+            <div class="progress-item">
+                <span class="icon">⏳</span>
+                <span class="text">Emergency alert system</span>
+            </div>
+            <div class="progress-item">
+                <span class="icon">⏳</span>
+                <span class="text">Storytelling engine</span>
+            </div>
+        </div>
+        
+        <!-- Hardware Platform -->
+        <h2>Hardware Platform</h2>
+        <p>Built on Arduino UNO Q with revolutionary dual-core architecture:</p>
+        
+        <div class="status-grid">
+            <div class="status-card">
+                <h3>🖥️ MPU (Linux Side)</h3>
+                <ul class="feature-list">
+                    <li>Qualcomm Dragonwing QRB2210</li>
+                    <li>Runs Python, App Lab</li>
+                    <li>Camera & voice processing</li>
+                    <li>4GB RAM</li>
+                </ul>
+            </div>
+            
+            <div class="status-card">
+                <h3>🔴 MCU (RTOS Side)</h3>
+                <ul class="feature-list">
+                    <li>STM32U585 microcontroller</li>
+                    <li>Real-time motor control</li>
+                    <li>Sensor reading</li>
+                    <li>Safety interlocks</li>
+                </ul>
+            </div>
+        </div>
+        
+        <p style="text-align: center; margin-top: 50px; color: #aaa;">
+            Built with ❤️ using Arduino UNO Q, ROS2, and AimeeCloud
+        </p>
+    </div>
+    <script>
+        (async function() {
+            try {
+                const res = await fetch('/aimeecloud-api/auth/me', { credentials: 'include' });
+                if (res.ok) {
+                    document.getElementById('navSignIn').style.display = 'none';
+                    document.getElementById('navRequestInvite').style.display = 'none';
+                    document.getElementById('navApiKeys').style.display = 'inline';
+                }
+            } catch {}
+        })();
+    </script>
+</body>
+</html>

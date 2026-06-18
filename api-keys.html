@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Keys - AimeeCloud</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        header {
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid rgba(79,195,247,0.3);
+            padding: 12px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+        .header-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .header-logo img { height: 36px; border-radius: 8px; }
+        .header-logo span { font-size: 1.2rem; font-weight: 700; color: #fff; }
+        .header-nav { display: flex; align-items: center; gap: 16px; }
+        .header-nav a {
+            color: #aaa;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        .header-nav a:hover { color: #fff; }
+        .btn {
+            background: linear-gradient(135deg, #00979D, #007a7f);
+            color: #fff;
+            padding: 8px 18px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 5px 15px rgba(0,151,157,0.3); }
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .btn-danger {
+            background: rgba(239,68,68,0.2);
+            border: 1px solid rgba(239,68,68,0.4);
+            color: #ef4444;
+        }
+        .btn-danger:hover { background: rgba(239,68,68,0.3); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        h1 {
+            font-size: 2rem;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+        .subtitle { color: #888; margin-bottom: 30px; }
+
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 24px;
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 16px;
+        }
+
+        .new-key-form {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .new-key-form input {
+            flex: 1;
+            min-width: 200px;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #fff;
+            font-size: 14px;
+        }
+        .new-key-form input:focus { outline: none; border-color: #4fc3f7; }
+        .new-key-form select {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #fff;
+            font-size: 14px;
+        }
+        .new-key-form select option { background: #1a1a2e; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th {
+            text-align: left;
+            padding: 12px;
+            color: #888;
+            font-weight: 500;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        td {
+            padding: 14px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        tr:last-child td { border-bottom: none; }
+        .key-mono {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.85rem;
+            color: #4fc3f7;
+            background: rgba(0,0,0,0.2);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-free { background: rgba(79,195,247,0.15); color: #4fc3f7; }
+        .badge-paid { background: rgba(16,185,129,0.15); color: #10b981; }
+        .badge-disabled { background: rgba(239,68,68,0.15); color: #ef4444; }
+        .badge-active { background: rgba(16,185,129,0.15); color: #10b981; }
+
+        .actions { display: flex; gap: 8px; }
+        .actions .btn { padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(16,185,129,0.9);
+            color: #fff;
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-weight: 500;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 200;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.error { background: rgba(239,68,68,0.9); }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 150;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #1a1a2e;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 480px;
+            width: 90%;
+            text-align: center;
+        }
+        .modal h3 { color: #fff; margin-bottom: 12px; }
+        .modal p { color: #aaa; margin-bottom: 20px; }
+        .modal .key-display {
+            background: rgba(0,0,0,0.3);
+            border: 1px dashed rgba(79,195,247,0.4);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: monospace;
+            font-size: 1rem;
+            color: #4fc3f7;
+            margin-bottom: 20px;
+            word-break: break-all;
+        }
+        .modal .btn-row { display: flex; gap: 12px; justify-content: center; }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: #4fc3f7;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 600px) {
+            .new-key-form { flex-direction: column; align-items: stretch; }
+            .new-key-form input, .new-key-form select, .new-key-form button { width: 100%; }
+            table { font-size: 0.8rem; }
+            th, td { padding: 10px 8px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <a href="/" class="header-logo">
+                <img src="aimeecloud-logo.png" alt="AimeeCloud">
+                <span>AimeeCloud</span>
+            </a>
+            <nav class="header-nav">
+                <a href="/">Home</a>
+                <span id="userEmail" style="color:#888;font-size:0.85rem;"></span>
+                <button class="btn btn-secondary" onclick="logout()">Sign Out</button>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1>API Keys</h1>
+        <p class="subtitle">Manage keys for connecting your robots to AimeeCloud</p>
+
+        <div class="card">
+            <div class="card-title">Create New Key</div>
+            <div class="new-key-form">
+                <input type="text" id="keyLabel" placeholder="Label (e.g. Ron, Minnie, Test Robot)" maxlength="100">
+                <select id="keyTier">
+                    <option value="free">Free — Hobbyist</option>
+                    <option value="paid">Paid — Manufacturer</option>
+                </select>
+                <button class="btn" onclick="createKey()" id="createBtn">Generate Key</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Your Keys</div>
+            <div id="keysTableContainer">
+                <div class="empty-state">
+                    <div class="loading"></div>
+                    <p>Loading your API keys...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Key Modal -->
+    <div class="modal-overlay" id="newKeyModal">
+        <div class="modal">
+            <h3>Your New API Key</h3>
+            <p>Copy this key now — it won't be shown again.</p>
+            <div class="key-display" id="newKeyValue"></div>
+            <div class="btn-row">
+                <button class="btn btn-secondary" onclick="copyKey()">Copy</button>
+                <button class="btn" onclick="closeModal()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API_BASE = '/aimeecloud-api';
+
+        async function checkAuth() {
+            try {
+                const res = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
+                if (!res.ok) throw new Error('Not authenticated');
+                const user = await res.json();
+                document.getElementById('userEmail').textContent = user.email;
+                loadKeys();
+            } catch {
+                window.location.href = '/login.html';
+            }
+        }
+
+        async function loadKeys() {
+            const container = document.getElementById('keysTableContainer');
+            try {
+                const res = await fetch(`${API_BASE}/keys`, { credentials: 'include' });
+                if (!res.ok) throw new Error('Failed to load keys');
+                const keys = await res.json();
+                renderKeys(keys);
+            } catch (err) {
+                container.innerHTML = `<div class="empty-state"><p>Error loading keys: ${err.message}</p></div>`;
+            }
+        }
+
+        function renderKeys(keys) {
+            const container = document.getElementById('keysTableContainer');
+            if (keys.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No API keys yet. Create one above to get started.</p>
+                    </div>`;
+                return;
+            }
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Key</th>
+                            <th>Label</th>
+                            <th>Tier</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${keys.map(k => `
+                            <tr>
+                                <td><span class="key-mono">${k.key}</span></td>
+                                <td>${escapeHtml(k.label)}</td>
+                                <td><span class="badge badge-${k.tier}">${k.tier}</span></td>
+                                <td><span class="badge ${k.is_disabled ? 'badge-disabled' : 'badge-active'}">${k.is_disabled ? 'Disabled' : 'Active'}</span></td>
+                                <td>${new Date(k.created_at).toLocaleDateString()}</td>
+                                <td>
+                                    <div class="actions">
+                                        <button class="btn btn-secondary" onclick="toggleKey(${k.id}, ${!k.is_disabled})">${k.is_disabled ? 'Enable' : 'Disable'}</button>
+                                        <button class="btn btn-danger" onclick="deleteKey(${k.id})">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function createKey() {
+            const label = document.getElementById('keyLabel').value.trim();
+            const tier = document.getElementById('keyTier').value;
+            const btn = document.getElementById('createBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>';
+
+            try {
+                const res = await fetch(`${API_BASE}/keys`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ label: label || 'My Robot', tier })
+                });
+                if (!res.ok) throw new Error('Failed to create key');
+                const data = await res.json();
+                document.getElementById('keyLabel').value = '';
+                showNewKey(data.key);
+                loadKeys();
+            } catch (err) {
+                showToast(err.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Generate Key';
+            }
+        }
+
+        async function toggleKey(id, disable) {
+            try {
+                const res = await fetch(`${API_BASE}/keys/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ is_disabled: disable })
+                });
+                if (!res.ok) throw new Error('Failed to update key');
+                showToast(disable ? 'Key disabled' : 'Key enabled');
+                loadKeys();
+            } catch (err) {
+                showToast(err.message, true);
+            }
+        }
+
+        async function deleteKey(id) {
+            if (!confirm('Are you sure? This key will be permanently deleted.')) return;
+            try {
+                const res = await fetch(`${API_BASE}/keys/${id}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                if (!res.ok) throw new Error('Failed to delete key');
+                showToast('Key deleted');
+                loadKeys();
+            } catch (err) {
+                showToast(err.message, true);
+            }
+        }
+
+        function showNewKey(key) {
+            document.getElementById('newKeyValue').textContent = key;
+            document.getElementById('newKeyModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('newKeyModal').classList.remove('active');
+        }
+
+        function copyKey() {
+            const key = document.getElementById('newKeyValue').textContent;
+            navigator.clipboard.writeText(key).then(() => showToast('Copied to clipboard'));
+        }
+
+        async function logout() {
+            await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+            window.location.href = '/';
+        }
+
+        function showToast(msg, isError) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast' + (isError ? ' error' : '') + ' show';
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        checkAuth();
+    </script>
+</body>
+</html>

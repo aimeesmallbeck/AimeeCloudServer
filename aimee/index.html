@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aimee — MQTT Test Client</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root { --bg: #0a0a0a; --card: #161618; --border: #2a2a2e; --accent: #00d4d4; --accent-dim: #00b3b3; --text: #f0f0f0; --text-dim: #888; --error: #ff4d4d; --success: #10b981; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .container { width: 100%; max-width: 500px; }
+        
+        .initial-view { text-align: center; padding: 60px 20px; }
+        .initial-view .avatar { width: 120px; height: 120px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 60px; font-weight: 700; color: #000; }
+        .initial-view h1 { font-size: 28px; font-weight: 700; color: var(--accent); margin-bottom: 32px; }
+        .initial-view .input-group { display: flex; gap: 10px; }
+        .initial-view input[type="text"] { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; font-size: 16px; color: var(--text); outline: none; }
+        .initial-view input[type="text"]:focus { border-color: var(--accent); }
+        .initial-view input[type="text"]::placeholder { color: var(--text-dim); }
+        .initial-view button { background: var(--accent); color: #000; border: none; border-radius: 12px; padding: 16px 24px; font-size: 16px; font-weight: 700; cursor: pointer; }
+        .initial-view button:hover { background: var(--accent-dim); }
+        .initial-view button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .compact-view { display: none; }
+        .compact-view .header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 14px; color: var(--text-dim); }
+        .compact-view .header .at { color: var(--accent); font-weight: 600; }
+        .compact-view .input-row { display: flex; gap: 8px; margin-bottom: 16px; }
+        .compact-view input[type="text"] { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 12px 16px; font-size: 14px; color: var(--text); outline: none; }
+        .compact-view input[type="text"]:focus { border-color: var(--accent); }
+        .compact-view input[type="text"]::placeholder { color: var(--text-dim); }
+        .compact-view .send-btn { background: var(--accent); color: #000; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; }
+        .compact-view .send-btn:hover { background: var(--accent-dim); }
+        .compact-view .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .compact-view .divider { height: 1px; background: var(--border); margin-bottom: 16px; }
+        
+        .compact-view .chat-response { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; font-size: 15px; line-height: 1.6; }
+        
+        .compact-view .game-container { display: none; }
+        .compact-view .game-prompt { font-size: 14px; color: var(--text-dim); margin-bottom: 12px; }
+        .compact-view .game-area { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+        .compact-view .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .compact-view .game-header .turn { font-weight: 600; color: var(--accent); }
+        .compact-view .game-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 280px; margin: 0 auto; }
+        .compact-view .game-cell { aspect-ratio: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; cursor: pointer; }
+        .compact-view .game-cell:hover { border-color: var(--accent); }
+        .compact-view .game-cell.x { color: var(--accent); }
+        .compact-view .game-cell.o { color: #ff6b6b; }
+        .compact-view .game-score { display: flex; justify-content: center; gap: 32px; margin-top: 16px; font-size: 14px; }
+        .compact-view .game-score span { color: var(--text-dim); }
+        
+        .status { text-align: center; margin-top: 12px; font-size: 13px; color: var(--text-dim); }
+        .status .connected { color: var(--success); }
+        .status .disconnected { color: var(--error); }
+        
+        .meta-bar { display: flex; justify-content: center; gap: 16px; font-size: 12px; color: var(--text-dim); margin-bottom: 12px; }
+        .meta-bar span { background: var(--card); padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Initial View -->
+    <div class="initial-view" id="initialView">
+        <div class="avatar">@</div>
+        <h1>Hi, I'm Aimee!</h1>
+        <div class="input-group">
+            <input type="text" id="command" placeholder="Ask me anything..." autofocus>
+            <button id="sendBtn" onclick="sendRequest()">Send</button>
+        </div>
+        <div class="meta-bar" style="margin-top: 20px;">
+            <span id="mqttStatus">MQTT: Connecting...</span>
+            <span id="sessionDisplay">Session: —</span>
+        </div>
+    </div>
+    
+    <!-- Compact View -->
+    <div class="compact-view" id="compactView">
+        <div class="header">
+            <span class="at">@</span>Aimee
+        </div>
+        
+        <div class="meta-bar">
+            <span id="mqttStatus2">MQTT: —</span>
+            <span id="sessionDisplay2">Session: —</span>
+        </div>
+        
+        <div class="input-row">
+            <input type="text" id="command2" placeholder="Ask me anything...">
+            <button class="send-btn" id="sendBtn2" onclick="sendRequest()">➤</button>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <!-- Chat Response -->
+        <div class="chat-response" id="chatResponse"></div>
+        
+        <!-- Game Container -->
+        <div class="game-container" id="gameContainer">
+            <div class="game-prompt" id="gamePrompt">Your turn! X</div>
+            <div class="game-area">
+                <div class="game-board" id="gameBoard"></div>
+                <div class="game-score">
+                    <div>You (X): <span id="scoreX">0</span></div>
+                    <div>Aimee (O): <span id="scoreO">0</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status" id="status">Connecting to AimeeCloud...</div>
+</div>
+
+<script type="module">
+import mqtt from 'https://unpkg.com/mqtt/dist/mqtt.esm.js';
+
+const MQTT_URL = 'wss://aimeecloud.com/aimeecloud-mqtt';
+
+// Stable device ID
+let deviceId = localStorage.getItem('aimee_device_id');
+if (!deviceId) {
+    deviceId = 'browser-' + Math.random().toString(36).slice(2, 10);
+    localStorage.setItem('aimee_device_id', deviceId);
+}
+
+let sessionId = sessionStorage.getItem('aimee_session_id') || null;
+let gameState = null;
+let currentGame = null;
+let client = null;
+
+const scoreTracker = { X: 0, O: 0 };
+
+function setStatus(text, isError) {
+    const el = document.getElementById('status');
+    el.textContent = text;
+    el.className = 'status ' + (isError ? 'disconnected' : '');
+}
+
+function setMqttStatus(connected) {
+    const text = connected ? 'MQTT: Connected' : 'MQTT: Disconnected';
+    const cls = connected ? 'connected' : 'disconnected';
+    document.getElementById('mqttStatus').textContent = text;
+    document.getElementById('mqttStatus').className = cls;
+    document.getElementById('mqttStatus2').textContent = text;
+    document.getElementById('mqttStatus2').className = cls;
+}
+
+function setSessionDisplay(id) {
+    const text = 'Session: ' + (id ? id.slice(0, 12) + '…' : '—');
+    document.getElementById('sessionDisplay').textContent = text;
+    document.getElementById('sessionDisplay2').textContent = text;
+}
+
+function publish(topicSuffix, payload) {
+    const topic = `aimeecloud/device/${deviceId}/${topicSuffix}`;
+    payload.device_id = deviceId;
+    payload.timestamp = new Date().toISOString();
+    client.publish(topic, JSON.stringify(payload));
+}
+
+function initMqtt() {
+    client = mqtt.connect(MQTT_URL, {
+        will: {
+            topic: `aimeecloud/device/${deviceId}/in`,
+            payload: JSON.stringify({ type: 'disconnect', device_id: deviceId, session_id: sessionId }),
+            qos: 0,
+            retain: false
+        }
+    });
+
+    client.on('connect', () => {
+        setMqttStatus(true);
+        setStatus('Connected. Starting session...');
+        
+        client.subscribe(`aimeecloud/device/${deviceId}/out`);
+        client.subscribe(`aimeecloud/device/${deviceId}/status`);
+        
+        // Request session init
+        publish('connect', {
+            type: 'connect',
+            user_profile: { name: 'BrowserTester', location: 'web' },
+            capabilities: { input: ['text'], output: ['display', 'tts'] },
+            request_session_id: sessionId || null
+        });
+    });
+
+    client.on('disconnect', () => {
+        setMqttStatus(false);
+        setStatus('Disconnected from AimeeCloud', true);
+    });
+
+    client.on('error', (err) => {
+        setMqttStatus(false);
+        setStatus('MQTT Error: ' + err.message, true);
+    });
+
+    client.on('message', (topic, message) => {
+        try {
+            const data = JSON.parse(message.toString());
+            handleCloudMessage(data);
+        } catch (e) {
+            console.error('Failed to parse message:', e);
+        }
+    });
+}
+
+function handleCloudMessage(data) {
+    console.log('Cloud message:', data);
+
+    if (data.type === 'session_init') {
+        sessionId = data.session_id;
+        sessionStorage.setItem('aimee_session_id', sessionId);
+        setSessionDisplay(sessionId);
+        setStatus('Session active — ' + data.session_id.slice(0, 8));
+        return;
+    }
+
+    if (data.type === 'status') {
+        setStatus('Status: ' + data.status);
+        return;
+    }
+
+    if (data.type === 'response') {
+        // Switch to compact view on first response
+        document.getElementById('initialView').style.display = 'none';
+        document.getElementById('compactView').style.display = 'block';
+        document.getElementById('sendBtn').disabled = false;
+        document.getElementById('sendBtn2').disabled = false;
+
+        if (data.sub_type === 'game_update' && data.state) {
+            gameState = data.state;
+            currentGame = data.game;
+            document.getElementById('chatResponse').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+            renderGame(data.state, data.game);
+            setStatus(data.tts || 'Game updated');
+        } else if (data.sub_type === 'error') {
+            document.getElementById('chatResponse').style.display = 'block';
+            document.getElementById('gameContainer').style.display = 'none';
+            document.getElementById('chatResponse').textContent = data.text || data.error || 'Error';
+            setStatus(data.tts || 'Error', true);
+        } else {
+            // chat_response, robot_command, aimee_agent, etc.
+            document.getElementById('chatResponse').style.display = 'block';
+            document.getElementById('gameContainer').style.display = 'none';
+            let text = data.text || data.tts || 'No response';
+            if (data.voice) {
+                text += '\n\n🎤 Voice: ' + (data.voice.persona || data.voice.id || JSON.stringify(data.voice));
+            }
+            if (data.voice_segments && data.voice_segments.length > 0) {
+                text += '\n\n[Voice Segments]\n' + data.voice_segments.map((s, i) =>
+                    `${i + 1}. [${s.voice || '?'}] ${s.speaker || 'Narrator'}: ${s.text}`
+                ).join('\n');
+            }
+            if (data.commands && data.commands.length > 0) {
+                text += '\n\n[Commands]\n' + JSON.stringify(data.commands, null, 2);
+            }
+            document.getElementById('chatResponse').textContent = text;
+            setStatus(data.tts || 'Response received');
+        }
+    }
+}
+
+window.sendRequest = function() {
+    const rawCmd = document.getElementById('command').value.trim() || document.getElementById('command2').value.trim();
+    if (!rawCmd || !sessionId) return;
+
+    document.getElementById('sendBtn').disabled = true;
+    document.getElementById('sendBtn2').disabled = true;
+    document.getElementById('status').textContent = 'Sending...';
+
+    let msgType = 'intent';
+    let payload = rawCmd;
+    if (rawCmd.toLowerCase().startsWith('/agent ')) {
+        msgType = 'AimeeAgent';
+        payload = rawCmd.slice(7).trim();
+    }
+
+    publish('in', {
+        type: msgType,
+        session_id: sessionId,
+        payload: payload
+    });
+
+    document.getElementById('command').value = '';
+    document.getElementById('command2').value = '';
+};
+
+function renderGame(state, gameName) {
+    if (gameName === 'tic-tac-toe') {
+        renderTicTacToe(state);
+    } else {
+        // Fallback for other games
+        document.getElementById('gamePrompt').textContent = `Playing ${gameName}`;
+        document.getElementById('gameBoard').innerHTML = '<div style="color:#888;text-align:center;padding:20px;">Game UI not yet implemented for ' + gameName + '</div>';
+    }
+}
+
+function renderTicTacToe(data) {
+    if (data.game_status === 'X_won') {
+        document.getElementById('gamePrompt').textContent = 'You win! 🎉';
+        scoreTracker.X++;
+    } else if (data.game_status === 'O_won') {
+        document.getElementById('gamePrompt').textContent = 'Aimee wins!';
+        scoreTracker.O++;
+    } else if (data.game_status === 'draw') {
+        document.getElementById('gamePrompt').textContent = "It's a draw!";
+    } else if (data.current_turn) {
+        document.getElementById('gamePrompt').textContent = data.current_turn === 'X' ? 'Your turn! X' : "Aimee's turn...";
+    }
+    
+    const board = data.board || Array(9).fill('');
+    const boardEl = document.getElementById('gameBoard');
+    boardEl.innerHTML = '';
+    
+    board.forEach((cell, i) => {
+        const cellEl = document.createElement('div');
+        cellEl.className = 'game-cell' + (cell === 'X' ? ' x' : cell === 'O' ? ' o' : '');
+        cellEl.textContent = cell;
+        cellEl.onclick = () => makeMove(i);
+        boardEl.appendChild(cellEl);
+    });
+    
+    document.getElementById('scoreX').textContent = scoreTracker.X;
+    document.getElementById('scoreO').textContent = scoreTracker.O;
+}
+
+window.makeMove = function(index) {
+    if (!sessionId || !currentGame) return;
+    if (currentGame === 'tic-tac-toe') {
+        if (gameState?.board && gameState.board[index]) return;
+        if (gameState?.current_turn !== 'X') return;
+    }
+    
+    document.getElementById('sendBtn2').disabled = true;
+    
+    publish('in', {
+        type: 'game_move',
+        session_id: sessionId,
+        game: currentGame,
+        move: currentGame === 'tic-tac-toe' ? { position: index } : { text: String(index) }
+    });
+};
+
+// Enter key handlers
+document.getElementById('command').addEventListener('keydown', e => { if (e.key === 'Enter') sendRequest(); });
+document.getElementById('command2').addEventListener('keydown', e => { if (e.key === 'Enter') sendRequest(); });
+
+initMqtt();
+</script>
+</body>
+</html>

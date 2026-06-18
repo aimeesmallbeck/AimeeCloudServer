@@ -1,0 +1,27 @@
+Generate a complete Node.js game engine module for "{game_name}".
+
+It MUST conform to this exact interface:
+- exports.name = '{game_name_kebab}'
+- exports.displayName = '{Game Name}'
+- exports.stationary = true
+- exports.modes = [...]
+- exports.createState(caps) → state with .mode selected
+- exports.makeMove(state, move, player) → mutates state
+- exports.agentMove(state) → AI opponent move, mutates state
+- exports.buildResponse(state, meta) → { text, tts, voice, commands }
+- exports.normalizeState(state) → client-safe state
+- exports.reset(state) → reset state
+- exports.getHint(state, player) → { text, tts, hint }
+- exports.getRules() → { text, tts }
+
+Rules to implement:
+{rules_summary}
+
+State schema:
+{state_schema}
+
+Use this open-source library if applicable: {library_name}
+{library_usage_example}
+
+The engine must be entirely self-contained in one file.
+Return ONLY the JavaScript code, no markdown fences.

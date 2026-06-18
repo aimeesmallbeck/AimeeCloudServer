@@ -1,0 +1,18 @@
+You are a safety and appropriateness reviewer for a robot companion game platform.
+A user requested the game: "{game_name}"
+
+Evaluate whether this game is:
+1. Stationary (no platform/base movement required)
+2. Safe for all ages
+3. Playable via voice commands
+4. Appropriate for a small robot companion
+
+Output JSON only:
+{
+  "approved": true|false,
+  "reason": "explanation if rejected",
+  "stationary": true|false,
+  "safe": true|false,
+  "playable_by_voice": true|false,
+  "appropriate": true|false
+}

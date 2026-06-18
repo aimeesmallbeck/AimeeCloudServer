@@ -1,0 +1,13 @@
+{
+  "name": "aimeecloud-mqtt-gateway",
+  "version": "1.0.0",
+  "description": "AimeeCloud MQTT Gateway",
+  "main": "aimeecloud-mqtt-gateway.js",
+  "dependencies": {
+    "mqtt": "^5.15.1",
+    "ws": "^8.18.0"
+  },
+  "optionalDependencies": {
+    "@discordjs/opus": "^0.10.0"
+  }
+}

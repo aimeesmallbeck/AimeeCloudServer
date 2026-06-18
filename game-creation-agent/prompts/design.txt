@@ -1,0 +1,24 @@
+You are a game designer for physical robot companions.
+Design a capability-aware game of "{game_name}" for a robot with these capabilities: {caps}.
+
+Constraints:
+- The game must be stationary (no robot movement required).
+- The robot can speak (TTS), show a camera snapshot, and display text.
+- The game should be playable via voice commands.
+
+Output JSON only:
+{
+  "rules_summary": "2-3 sentence rules summary",
+  "state_schema": "description of the state object",
+  "move_format": "what the user says / sends",
+  "modes": [
+    { "name": "voice+snapshot", "description": "how the game uses camera" },
+    { "name": "voice-only", "description": "how the game works without camera" },
+    { "name": "display-only", "description": "how the game works with only a screen" }
+  ],
+  "teaching_strategy": "how to teach the game",
+  "open_source_library": "name of JS library if one exists, else null",
+  "stationary": true,
+  "safe": true,
+  "appropriate": true
+}

@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AimeeCloud Robot Simulator</title>
+    <style>
+        :root {
+            --bg: #0f0f13;
+            --panel: #1a1a22;
+            --panel-hover: #22222e;
+            --border: #2e2e3e;
+            --accent: #00d4d4;
+            --accent-dim: #00a0a0;
+            --text: #e8e8f0;
+            --text-dim: #8888a0;
+            --success: #10b981;
+            --error: #ef4444;
+            --warn: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header h1::before {
+            content: '🤖';
+        }
+        .header .connection-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .header input[type="text"] {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 13px;
+            color: var(--text);
+            min-width: 240px;
+        }
+        .header input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .header button {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 18px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .header button:hover { background: var(--accent-dim); }
+        .header button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .header .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--error);
+            display: inline-block;
+        }
+        .header .status-dot.connected { background: var(--success); }
+        .header .status-dot.connecting { background: var(--warn); animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* Main layout */
+        .main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 280px 1fr 1fr;
+            grid-template-rows: auto auto 1fr;
+            gap: 16px;
+            padding: 16px;
+            min-height: 0;
+        }
+        .panel-sidebar { grid-column: 1; grid-row: 1 / 4; }
+        .panel-voice-in { grid-column: 2; grid-row: 1; }
+        .panel-voice-out { grid-column: 2; grid-row: 2; }
+        .panel-log { grid-column: 2; grid-row: 3; }
+        .panel-display { grid-column: 3; grid-row: 1 / 4; }
+        @media (max-width: 1100px) {
+            .main { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto 1fr; }
+            .panel-sidebar { grid-column: 1 / -1; grid-row: auto; }
+            .panel-voice-in { grid-column: 1; grid-row: auto; }
+            .panel-voice-out { grid-column: 2; grid-row: auto; }
+            .panel-log { grid-column: 1 / -1; grid-row: auto; }
+            .panel-display { grid-column: 1 / -1; grid-row: auto; }
+        }
+        @media (max-width: 700px) {
+            .main { grid-template-columns: 1fr; }
+            .panel-sidebar,
+            .panel-voice-in,
+            .panel-voice-out,
+            .panel-log,
+            .panel-display { grid-column: 1; grid-row: auto; }
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+        .panel-header {
+            padding: 12px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .panel-body {
+            flex: 1;
+            overflow: auto;
+            padding: 12px;
+            min-height: 0;
+        }
+
+        /* Sidebar */
+        .panel-sidebar .section {
+            margin-bottom: 16px;
+        }
+        .panel-sidebar .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .panel-sidebar label {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-dim);
+            padding: 5px 0;
+            cursor: pointer;
+            line-height: 1.35;
+        }
+        .panel-sidebar label:hover { color: var(--text); }
+        .panel-sidebar input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .panel-sidebar .device-id {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 11px;
+            background: var(--bg);
+            padding: 6px 8px;
+            border-radius: 6px;
+            color: var(--accent);
+            word-break: break-all;
+            margin-top: 4px;
+        }
+        .panel-sidebar .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-dim);
+            padding: 3px 0;
+        }
+
+        /* Voice panels */
+        .voice-input-area {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .voice-input-area input {
+            flex: 1;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+            color: var(--text);
+        }
+        .voice-input-area input:focus { outline: none; border-color: var(--accent); }
+        .voice-input-area button {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            padding: 0 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .voice-input-area button:hover { background: var(--accent-dim); }
+        .mic-btn {
+            background: var(--bg) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--accent) !important;
+            font-size: 18px !important;
+        }
+        .mic-btn.recording {
+            background: var(--error) !important;
+            color: #fff !important;
+            border-color: var(--error) !important;
+        }
+
+        .response-box {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+            min-height: 80px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .response-box .label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .response-box .tts-text {
+            color: var(--accent);
+            font-style: italic;
+        }
+        .response-box .raw-text {
+            color: var(--text);
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Display panel */
+        .display-screen {
+            background: #050510;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'SF Mono', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #0f0;
+            min-height: 120px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            position: relative;
+        }
+        .display-screen.empty::after {
+            content: 'Display standby...';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #0f03;
+            font-size: 16px;
+        }
+        .display-screen img {
+            max-width: 100%;
+            border-radius: 4px;
+        }
+
+        /* Command log */
+        .log-entry {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .log-entry .time { color: var(--text-dim); margin-right: 8px; }
+        .log-entry .dir-in { color: var(--success); }
+        .log-entry .dir-out { color: var(--accent); }
+        .log-entry .dir-err { color: var(--error); }
+        .log-entry pre {
+            margin: 4px 0 0 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--text-dim);
+        }
+
+        /* Quick actions */
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .quick-actions button {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            color: var(--text);
+            cursor: pointer;
+        }
+        .quick-actions button:hover { background: var(--panel-hover); border-color: var(--accent); }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AimeeCloud Robot Simulator</h1>
+        <div class="connection-bar">
+            <span id="connDot" class="status-dot"></span>
+            <input type="text" id="mqttUrl" value="wss://aimeecloud.com/aimeecloud-mqtt" placeholder="MQTT WebSocket URL">
+            <button id="connBtn" onclick="toggleConnection()">Connect</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- Sidebar: Capabilities & Status -->
+        <div class="panel panel-sidebar">
+            <div class="panel-header">🎛️ Robot Config</div>
+            <div class="panel-body">
+                <div class="section">
+                    <div class="section-title">Capabilities</div>
+                    <label><input type="checkbox" id="capVoice" checked> Voice (TTS input/output)</label>
+                    <label><input type="checkbox" id="capDisplay" checked> Display</label>
+                    <label><input type="checkbox" id="capSnapshot"> Camera Snapshot</label>
+                    <label><input type="checkbox" id="capArm"> Arm / Gripper</label>
+                    <label><input type="checkbox" id="capPlatform"> Platform / Motors</label>
+                </div>
+                <div class="section">
+                    <div class="section-title">Identity</div>
+                    <div class="info-row"><span>Device ID</span></div>
+                    <div class="device-id" id="deviceIdDisplay">—</div>
+                    <div class="info-row" style="margin-top:8px"><span>Session</span> <span id="sessionStatus">—</span></div>
+                    <div class="info-row"><span>Active Context</span> <span id="activeContext">—</span></div>
+                </div>
+                <div class="section">
+                    <div class="section-title">Quick Actions</div>
+                    <div class="quick-actions">
+                        <button onclick="sendIntent('What\'s the weather?')">Weather</button>
+                        <button onclick="sendIntent('Tell me a story')">Story</button>
+                        <button onclick="sendIntent('How do I play?')">Help</button>
+                    </div>
+                    <div class="quick-actions" id="quitGameActions" style="display:none;margin-top:8px">
+                        <button onclick="sendIntent('I quit')" style="border-color:var(--error);color:var(--error)">Quit Game</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Voice Input -->
+        <div class="panel panel-voice-in">
+            <div class="panel-header">🎤 Voice Input</div>
+            <div class="panel-body">
+                <div class="voice-input-area">
+                    <input type="text" id="voiceInput" placeholder="Type a voice command..." autofocus>
+                    <button onclick="sendVoice()">Send</button>
+                    <button class="mic-btn" id="micBtn" onclick="toggleMic()" title="Speech Recognition (Chrome only)">🎙️</button>
+                </div>
+                <div class="response-box">
+                    <div class="label">Last Transcript</div>
+                    <div id="lastTranscript" style="color:var(--text-dim)">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Voice Output (TTS) -->
+        <div class="panel panel-voice-out">
+            <div class="panel-header">🔊 Voice Output (TTS)</div>
+            <div class="panel-body">
+                <div class="response-box" id="ttsOutput">
+                    <div class="label">Spoken Response</div>
+                    <div class="tts-text" id="ttsText">Waiting for Aimee...</div>
+                    <div class="raw-text" id="rawText" style="display:none"></div>
+                </div>
+                <div class="quick-actions" style="margin-top:10px">
+                    <button onclick="speakTts()">🔊 Speak Last TTS</button>
+                    <button onclick="clearOutputs()">Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Display -->
+        <div class="panel panel-display">
+            <div class="panel-header">🖥️ Display</div>
+            <div class="panel-body">
+                <div class="display-screen empty" id="displayScreen"></div>
+            </div>
+        </div>
+
+        <!-- Command Log -->
+        <div class="panel panel-log">
+            <div class="panel-header">📡 Command Log</div>
+            <div class="panel-body" id="commandLog"></div>
+        </div>
+    </div>
+
+<script type="module">
+import mqtt from 'https://unpkg.com/mqtt/dist/mqtt.esm.js';
+
+// Stable device ID
+let deviceId = localStorage.getItem('aimee_sim_device_id');
+if (!deviceId) {
+    deviceId = 'sim-' + Math.random().toString(36).slice(2, 10);
+    localStorage.setItem('aimee_sim_device_id', deviceId);
+}
+document.getElementById('deviceIdDisplay').textContent = deviceId;
+
+let sessionId = sessionStorage.getItem('aimee_sim_session_id') || null;
+let client = null;
+let isConnected = false;
+let recognition = null;
+
+// --- Helpers ---
+function getCapabilities() {
+    const outputs = [];
+    if (document.getElementById('capVoice').checked) { outputs.push('tts'); outputs.push('voice'); }
+    if (document.getElementById('capDisplay').checked) outputs.push('display');
+    if (document.getElementById('capSnapshot').checked) outputs.push('snapshot');
+    if (document.getElementById('capArm').checked) { outputs.push('arm'); outputs.push('gripper'); }
+    if (document.getElementById('capPlatform').checked) { outputs.push('platform'); outputs.push('motors'); }
+    return { input: ['text', 'voice'], output: outputs };
+}
+
+function now() {
+    const d = new Date();
+    return d.getHours().toString().padStart(2,'0') + ':' +
+           d.getMinutes().toString().padStart(2,'0') + ':' +
+           d.getSeconds().toString().padStart(2,'0');
+}
+
+function log(dir, summary, detail) {
+    const logEl = document.getElementById('commandLog');
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    const dirClass = dir === 'IN' ? 'dir-in' : dir === 'OUT' ? 'dir-out' : 'dir-err';
+    entry.innerHTML = `<span class="time">${now()}</span> <span class="${dirClass}">${dir}</span> <b>${summary}</b>`;
+    if (detail) {
+        const pre = document.createElement('pre');
+        pre.textContent = typeof detail === 'string' ? detail : JSON.stringify(detail, null, 2);
+        entry.appendChild(pre);
+    }
+    logEl.appendChild(entry);
+    logEl.scrollTop = logEl.scrollHeight;
+}
+
+function publish(topicSuffix, payload) {
+    if (!client || !isConnected) {
+        log('ERR', 'Not connected');
+        return;
+    }
+    const topic = `aimeecloud/device/${deviceId}/${topicSuffix}`;
+    payload.device_id = deviceId;
+    payload.timestamp = new Date().toISOString();
+    const json = JSON.stringify(payload);
+    client.publish(topic, json);
+    log('OUT', topicSuffix, payload);
+}
+
+function setConnectionStatus(status) {
+    const dot = document.getElementById('connDot');
+    const btn = document.getElementById('connBtn');
+    if (status === 'connected') {
+        dot.className = 'status-dot connected';
+        btn.textContent = 'Disconnect';
+        isConnected = true;
+    } else if (status === 'connecting') {
+        dot.className = 'status-dot connecting';
+        btn.textContent = 'Connecting...';
+        isConnected = false;
+    } else {
+        dot.className = 'status-dot';
+        btn.textContent = 'Connect';
+        isConnected = false;
+    }
+}
+
+function setSessionStatus(id, context) {
+    document.getElementById('sessionStatus').textContent = id ? id.slice(0, 12) + '…' : '—';
+    document.getElementById('activeContext').textContent = context || '—';
+    const quitBtn = document.getElementById('quitGameActions');
+    if (quitBtn) {
+        quitBtn.style.display = (context && context.startsWith('Game:')) ? 'flex' : 'none';
+    }
+}
+
+// --- MQTT ---
+window.toggleConnection = function() {
+    if (isConnected) {
+        if (client) client.end();
+        client = null;
+        setConnectionStatus('disconnected');
+        log('ERR', 'Disconnected by user');
+        return;
+    }
+
+    const url = document.getElementById('mqttUrl').value.trim();
+    if (!url) return;
+
+    // Clear any stale session before reconnecting
+    sessionId = null;
+    sessionStorage.removeItem('aimee_sim_session_id');
+    setSessionStatus(null, null);
+    setConnectionStatus('connecting');
+    log('OUT', 'Connecting to ' + url);
+
+    client = mqtt.connect(url, {
+        will: {
+            topic: `aimeecloud/device/${deviceId}/in`,
+            payload: JSON.stringify({ type: 'disconnect', device_id: deviceId, session_id: null }),
+            qos: 0,
+            retain: false
+        }
+    });
+
+    client.on('connect', () => {
+        setConnectionStatus('connected');
+        log('IN', 'MQTT connected');
+        document.getElementById('voiceInput').disabled = true;
+        document.getElementById('voiceInput').placeholder = 'Waiting for session...';
+        client.subscribe(`aimeecloud/device/${deviceId}/out`);
+        client.subscribe(`aimeecloud/device/${deviceId}/status`);
+
+        publish('connect', {
+            type: 'connect',
+            user_profile: { name: 'RobotSimulator', location: 'browser' },
+            capabilities: getCapabilities(),
+            request_session_id: null
+        });
+    });
+
+    client.on('disconnect', () => {
+        setConnectionStatus('disconnected');
+        log('ERR', 'MQTT disconnected');
+    });
+
+    client.on('error', (err) => {
+        setConnectionStatus('disconnected');
+        log('ERR', 'MQTT error: ' + err.message);
+    });
+
+    client.on('message', (topic, message) => {
+        try {
+            const data = JSON.parse(message.toString());
+            log('IN', topic.split('/').pop(), data);
+            handleCloudMessage(data);
+        } catch (e) {
+            log('ERR', 'Parse error', e.message);
+        }
+    });
+};
+
+// --- Message Handling ---
+function handleCloudMessage(data) {
+    if (data.type === 'session_init') {
+        sessionId = data.session_id;
+        sessionStorage.setItem('aimee_sim_session_id', sessionId);
+        setSessionStatus(sessionId, null);
+        log('IN', 'Session active', data.session_id);
+        document.getElementById('voiceInput').disabled = false;
+        document.getElementById('voiceInput').placeholder = 'Type a voice command...';
+        document.getElementById('voiceInput').focus();
+        return;
+    }
+
+    if (data.type === 'status') {
+        setSessionStatus(sessionId, data.active_context || 'status');
+        return;
+    }
+
+    if (data.type === 'response') {
+        // Auto-recover from stale session
+        if (data.sub_type === 'error' && data.error === 'SESSION_NOT_FOUND') {
+            log('ERR', 'Session expired, reconnecting...');
+            sessionId = null;
+            sessionStorage.removeItem('aimee_sim_session_id');
+            setSessionStatus(null, null);
+            if (client && isConnected) {
+                publish('connect', {
+                    type: 'connect',
+                    user_profile: { name: 'RobotSimulator', location: 'browser' },
+                    capabilities: getCapabilities(),
+                    request_session_id: null
+                });
+            }
+            return;
+        }
+
+        // Update context
+        if (data.context?.active_context) {
+            setSessionStatus(sessionId, data.context.active_context);
+        }
+
+        // TTS output
+        const ttsEl = document.getElementById('ttsText');
+        const rawEl = document.getElementById('rawText');
+        if (data.tts) {
+            ttsEl.textContent = data.tts;
+            rawEl.style.display = 'block';
+            rawEl.textContent = 'Full text:\n' + (data.text || data.tts);
+            speakTtsAuto(data.tts);
+        } else if (data.text) {
+            ttsEl.textContent = data.text;
+            rawEl.style.display = 'block';
+            rawEl.textContent = 'Full text:\n' + data.text;
+        }
+
+        // Display panel
+        const displayEl = document.getElementById('displayScreen');
+        displayEl.classList.remove('empty');
+        if (data.state && (data.sub_type === 'game_update' || data.sub_type === 'error')) {
+            // Render game state as text on the display
+            let displayContent = '';
+            if (data.game === 'tic-tac-toe' && data.state.board) {
+                const b = data.state.board.map(c => c || '·');
+                displayContent = ` TIC-TAC-TOE\n` +
+                    ` ${b[0]} | ${b[1]} | ${b[2]}\n` +
+                    `-----------\n` +
+                    ` ${b[3]} | ${b[4]} | ${b[5]}\n` +
+                    `-----------\n` +
+                    ` ${b[6]} | ${b[7]} | ${b[8]}\n` +
+                    `Turn: ${data.state.current_turn || data.state.turn || '?'}\n` +
+                    `Status: ${data.state.game_status || data.state.status || '?'}`;
+            } else if (data.game === 'yahtzee') {
+                const s = data.state;
+                displayContent = ` YAHTZEE\n` +
+                    `Round: ${s.round} | Turn: ${s.turn}\n` +
+                    `Dice: ${(s.dice || []).join(' ')}\n` +
+                    `Player: ${s.player_total} | Aimee: ${s.agent_total}\n` +
+                    `Categories: ${(s.available_categories || []).join(', ')}`;
+            } else if (data.game === 'candyland') {
+                const s = data.state;
+                displayContent = ` CANDYLAND\n` +
+                    `Player: space ${s.players?.player?.position ?? '?'}\n` +
+                    `Aimee:  space ${s.players?.agent?.position ?? '?'}\n` +
+                    `Turn: ${s.current_turn || '?'}`;
+            } else {
+                displayContent = JSON.stringify(data.state, null, 2);
+            }
+            displayEl.textContent = displayContent;
+        } else if (data.text) {
+            displayEl.textContent = data.text;
+        }
+
+        // Handle commands (snapshot requests, expressions, etc.)
+        if (data.commands && data.commands.length > 0) {
+            const snapCmd = data.commands.find(c => c.type === 'snapshot');
+            if (snapCmd) {
+                displayEl.textContent += '\n\n[CAMERA REQUESTED]\nSimulating snapshot capture...';
+                // Auto-respond with a mock snapshot after a short delay
+                setTimeout(() => {
+                    publish('in', {
+                        type: 'snapshot_response',
+                        session_id: sessionId,
+                        snapshot_id: 'sim-' + Date.now(),
+                        image_base64: '',
+                        status: 'ok'
+                    });
+                }, 800);
+            }
+            const exprCmd = data.commands.find(c => c.type === 'expression');
+            if (exprCmd) {
+                displayEl.textContent += `\n\n[EXPRESSION: ${exprCmd.name}]`;
+            }
+        }
+    }
+}
+
+// --- Actions ---
+window.sendVoice = function() {
+    const input = document.getElementById('voiceInput');
+    const text = input.value.trim();
+    if (!text || !sessionId) return;
+    document.getElementById('lastTranscript').textContent = text;
+    input.value = '';
+
+    // Always send through AimeeAgent so the LLM can decide if it's a game move, chat, or quit
+    publish('in', {
+        type: 'AimeeAgent',
+        session_id: sessionId,
+        payload: text
+    });
+};
+
+window.sendIntent = function(text) {
+    document.getElementById('voiceInput').value = text;
+    sendVoice();
+};
+
+
+
+window.clearOutputs = function() {
+    document.getElementById('ttsText').textContent = 'Waiting for Aimee...';
+    document.getElementById('rawText').style.display = 'none';
+    document.getElementById('displayScreen').textContent = '';
+    document.getElementById('displayScreen').classList.add('empty');
+    document.getElementById('lastTranscript').textContent = '—';
+};
+
+// --- Speech Synthesis (TTS) ---
+let synth = window.speechSynthesis;
+function speakTtsAuto(text) {
+    if (!synth || !document.getElementById('capVoice').checked) return;
+    // Only auto-speak if user hasn't disabled it (future enhancement)
+}
+window.speakTts = function() {
+    const text = document.getElementById('ttsText').textContent;
+    if (!synth || !text || text === 'Waiting for Aimee...') return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.0;
+    u.pitch = 1.0;
+    synth.speak(u);
+};
+
+// --- Speech Recognition (STT) ---
+window.toggleMic = function() {
+    const btn = document.getElementById('micBtn');
+    if (recognition) {
+        recognition.stop();
+        recognition = null;
+        btn.classList.remove('recording');
+        return;
+    }
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert('Speech recognition not supported in this browser. Try Chrome.');
+        return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+        btn.classList.add('recording');
+        document.getElementById('lastTranscript').textContent = 'Listening...';
+    };
+    recognition.onresult = (e) => {
+        let transcript = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+            transcript += e.results[i][0].transcript;
+        }
+        document.getElementById('voiceInput').value = transcript;
+        if (e.results[e.results.length - 1].isFinal) {
+            document.getElementById('lastTranscript').textContent = transcript;
+            sendVoice();
+            recognition.stop();
+        }
+    };
+    recognition.onerror = (e) => {
+        log('ERR', 'Speech recognition error: ' + e.error);
+        btn.classList.remove('recording');
+        recognition = null;
+    };
+    recognition.onend = () => {
+        btn.classList.remove('recording');
+        recognition = null;
+    };
+    recognition.start();
+};
+
+// --- Keyboard ---
+document.getElementById('voiceInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendVoice();
+});
+
+// Auto-connect if URL present
+if (document.getElementById('mqttUrl').value) {
+    // Don't auto-connect automatically; let user click Connect
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Invite Requests</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        header {
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid rgba(79,195,247,0.3);
+            padding: 16px 0;
+        }
+        .header-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-logo { font-size: 1.2rem; font-weight: 700; color: #fff; }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        h1 { font-size: 1.8rem; color: #fff; margin-bottom: 8px; }
+        .subtitle { color: #888; margin-bottom: 30px; }
+        .stats {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 16px 24px;
+            min-width: 120px;
+        }
+        .stat-value { font-size: 1.5rem; font-weight: 700; color: #fff; }
+        .stat-label { font-size: 0.85rem; color: #888; }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 24px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th { text-align: left; padding: 12px; color: #888; font-weight: 500; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        td { padding: 14px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        tr:last-child td { border-bottom: none; }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-pending { background: rgba(245,158,11,0.15); color: #f59e0b; }
+        .badge-approved { background: rgba(16,185,129,0.15); color: #10b981; }
+        .btn {
+            background: linear-gradient(135deg, #00979D, #007a7f);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.8rem;
+            border: none;
+            cursor: pointer;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .copy-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #aaa;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+        .copy-btn:hover { color: #fff; }
+        .empty-state { text-align: center; padding: 40px; color: #888; }
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(16,185,129,0.9);
+            color: #fff;
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-weight: 500;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 200;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <div class="header-logo">AimeeCloud Admin</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1>Invite Requests</h1>
+        <p class="subtitle">Manage access requests for AimeeCloud</p>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="pendingCount">—</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalCount">—</div>
+                <div class="stat-label">Total</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div id="tableContainer">
+                <div class="empty-state">Loading invite requests...</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 24px; color: #666; font-size: 0.85rem;">
+            <p><strong>To approve users:</strong> Copy the pending emails above, then go to <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" style="color: #4fc3f7;">Google Cloud Console → OAuth consent screen → Test users</a> and add them.</p>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API_BASE = '/aimeecloud-api';
+        const ADMIN_TOKEN = prompt('Enter admin token:');
+
+        async function loadInvites() {
+            const container = document.getElementById('tableContainer');
+            try {
+                const res = await fetch(`${API_BASE}/admin/invites`, {
+                    headers: { 'X-Admin-Token': ADMIN_TOKEN || '' }
+                });
+                if (!res.ok) {
+                    if (res.status === 403) {
+                        container.innerHTML = '<div class="empty-state" style="color:#ef4444;">Invalid admin token. Refresh the page and try again.</div>';
+                        return;
+                    }
+                    throw new Error('Failed to load');
+                }
+                const invites = await res.json();
+                renderInvites(invites);
+            } catch (err) {
+                container.innerHTML = `<div class="empty-state">Error: ${err.message}</div>`;
+            }
+        }
+
+        function renderInvites(invites) {
+            const pending = invites.filter(i => i.status === 'pending');
+            document.getElementById('pendingCount').textContent = pending.length;
+            document.getElementById('totalCount').textContent = invites.length;
+
+            const container = document.getElementById('tableContainer');
+            if (invites.length === 0) {
+                container.innerHTML = '<div class="empty-state">No invite requests yet.</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Requested</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${invites.map(i => `
+                            <tr>
+                                <td>
+                                    ${i.email}
+                                    <button class="copy-btn" onclick="copyEmail('${i.email}')">Copy</button>
+                                </td>
+                                <td><span class="badge badge-${i.status}">${i.status}</span></td>
+                                <td>${new Date(i.created_at).toLocaleDateString()}</td>
+                                <td>
+                                    ${i.status === 'pending' ? `<button class="btn" onclick="approveInvite(${i.id}, this)">Approve</button>` : '<span style="color:#666;font-size:0.85rem;">—</span>'}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function approveInvite(id, btn) {
+            btn.disabled = true;
+            btn.textContent = '...';
+            try {
+                const res = await fetch(`${API_BASE}/admin/invites/${id}`, {
+                    method: 'POST',
+                    headers: { 'X-Admin-Token': ADMIN_TOKEN || '' }
+                });
+                if (res.ok) {
+                    showToast('Approved');
+                    loadInvites();
+                } else {
+                    showToast('Failed to approve', true);
+                    btn.disabled = false;
+                    btn.textContent = 'Approve';
+                }
+            } catch {
+                showToast('Error', true);
+                btn.disabled = false;
+                btn.textContent = 'Approve';
+            }
+        }
+
+        function copyEmail(email) {
+            navigator.clipboard.writeText(email).then(() => showToast('Copied'));
+        }
+
+        function showToast(msg, isError) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.background = isError ? 'rgba(239,68,68,0.9)' : 'rgba(16,185,129,0.9)';
+            toast.className = 'toast show';
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        loadInvites();
+    </script>
+</body>
+</html>

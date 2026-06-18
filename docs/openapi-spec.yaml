@@ -1,0 +1,1047 @@
+openapi: 3.0.3
+info:
+  title: AimeeCloud Robot API
+  description: |
+    Public API for robot manufacturers to integrate with AimeeCloud.
+    AimeeCloud uses MQTT over WebSocket (WSS) as the primary transport,
+    with optional REST endpoints for browser clients and health checks.
+
+    All MQTT messages are JSON-encoded. The protocol supports session
+    management, keyword-based intent routing, game state handling,
+    LLM-driven agent mode (`AimeeAgent`), and voice-directed TTS responses.
+  version: 1.5.0
+  contact:
+    name: AimeeCloud Support
+    url: https://aimeecloud.com/support
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: wss://aimeecloud.com/aimeecloud-mqtt
+    description: Primary MQTT over WebSocket (WSS) endpoint for robots
+  - url: wss://aimeecloud.com/ws/v1
+    description: Native audio streaming endpoint (optional, opt-in)
+  - url: https://aimeecloud.com
+    description: REST API for browser clients and health checks
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: Session
+    description: Session lifecycle management
+  - name: Messaging
+    description: Inbound and outbound messages
+  - name: REST
+    description: Optional REST endpoints for browser clients
+  - name: System
+    description: System-level messages and status
+
+paths:
+  /connect:
+    post:
+      tags:
+        - Session
+      summary: Initialize session
+      description: |
+        Initialize or resume a robot session. In MQTT, publish a
+        `connect` message to `aimeecloud/device/{deviceId}/connect`.
+        This REST endpoint mirrors that operation for HTTP-based clients.
+      operationId: connectSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectMessage'
+      responses:
+        '200':
+          description: Session initialized or resumed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionInitResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+
+  /status:
+    get:
+      tags:
+        - Session
+      summary: Connection status
+      description: Get the current connection and session status for the device.
+      operationId: getStatus
+      responses:
+        '200':
+          description: Current connection status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connected:
+                    type: boolean
+                    description: Whether the device is currently connected
+                  session_id:
+                    type: string
+                    nullable: true
+                    description: Active session ID, if any
+                  device_id:
+                    type: string
+                    description: Device identifier
+                  status:
+                    type: string
+                    enum: [connected, disconnected, expired]
+                    description: High-level connection status
+                  ttl:
+                    type: integer
+                    description: Session TTL in seconds
+                  expires_in:
+                    type: integer
+                    description: Seconds until session expires
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: ISO 8601 timestamp
+                required:
+                  - connected
+                  - device_id
+                  - status
+                  - timestamp
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /disconnect:
+    delete:
+      tags:
+        - Session
+      summary: End session
+      description: |
+        End the active session. In MQTT, publish a `disconnect`
+        message to `aimeecloud/device/{deviceId}/in`.
+      operationId: disconnectSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisconnectMessage'
+      responses:
+        '204':
+          description: Session ended successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+
+  /in:
+    post:
+      tags:
+        - Messaging
+      summary: Send inbound message
+      description: |
+        Send an intent, game_move, AimeeAgent request, or other
+        inbound message. In MQTT, publish to
+        `aimeecloud/device/{deviceId}/in`.
+      operationId: sendInboundMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/IntentMessage'
+                - $ref: '#/components/schemas/GameMoveMessage'
+                - $ref: '#/components/schemas/AimeeAgentMessage'
+                - $ref: '#/components/schemas/PingMessage'
+                - $ref: '#/components/schemas/DisconnectMessage'
+            examples:
+              intent:
+                summary: Intent example
+                value:
+                  type: intent
+                  session_id: sess_abc123
+                  payload: What is the weather?
+              gameMove:
+                summary: Game move example
+                value:
+                  type: game_move
+                  session_id: sess_abc123
+                  game: tic-tac-toe
+                  move:
+                    position: 4
+              aimeeAgent:
+                summary: AimeeAgent example
+                value:
+                  type: AimeeAgent
+                  session_id: sess_abc123
+                  payload: Look at the red block and tell me what you see
+              ping:
+                summary: Ping example
+                value:
+                  type: ping
+                  session_id: sess_abc123
+      responses:
+        '202':
+          description: Message accepted for processing
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+
+  /out:
+    get:
+      tags:
+        - Messaging
+      summary: Receive outbound messages (WebSocket)
+      description: |
+        **WebSocket endpoint:** `wss://aimeecloud.com/aimeecloud-mqtt`
+        
+        Subscribe to `aimeecloud/device/{deviceId}/out` to receive
+        responses from the gateway. Messages are JSON-encoded and
+        include `session_init`, `response` (with various `sub_type`
+        values), `snapshot_response`, and error messages.
+        
+        This is documented here for schema reference; clients must
+        connect via WebSocket/MQTT to receive real-time messages.
+      operationId: receiveOutboundMessages
+      responses:
+        '101':
+          description: Switching Protocols (WebSocket)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SessionInitResponse'
+                  - $ref: '#/components/schemas/ResponseMessage'
+                  - $ref: '#/components/schemas/SnapshotResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
+
+  /health:
+    get:
+      tags:
+        - REST
+      summary: Health check
+      description: Check whether the AimeeCloud gateway is operational.
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: Gateway is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  version:
+                    type: string
+                    example: 1.3.0
+                  timestamp:
+                    type: string
+                    format: date-time
+                required:
+                  - status
+                  - version
+                  - timestamp
+
+  /session/{id}:
+    get:
+      tags:
+        - REST
+      summary: Session info
+      description: Retrieve detailed information about a specific session.
+      operationId: getSessionInfo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Session ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionInitResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Session not found
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        Per-robot API key issued from the AimeeCloud dashboard.
+        Must be included in every request.
+
+  responses:
+    UnauthorizedError:
+      description: API key is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadRequestError:
+      description: Invalid request payload
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    # ------------------------------------------------------------------
+    # Capabilities & Identity
+    # ------------------------------------------------------------------
+    Capabilities:
+      type: object
+      description: |
+        Standard hardware capabilities a robot can declare. These tell
+        AimeeCloud how to tailor responses, game modes, and lesson formats.
+      properties:
+        voice:
+          type: boolean
+          description: Robot has text-to-speech (TTS) capability
+        display:
+          type: boolean
+          description: Robot has a screen/display
+        snapshot:
+          type: boolean
+          description: Robot has a camera that can capture photos
+        arm:
+          type: boolean
+          description: Robot has an articulated arm
+        platform:
+          type: boolean
+          description: Robot can drive/move
+        led:
+          type: boolean
+          description: Robot has LED expressions
+        input:
+          type: array
+          items:
+            type: string
+          description: Input modalities (e.g., text, voice, button)
+          example: [text, voice]
+        output:
+          type: array
+          items:
+            type: string
+          description: Output modalities (e.g., display, tts, led)
+          example: [display, tts]
+
+    UserProfile:
+      type: object
+      description: User profile metadata for context
+      properties:
+        name:
+          type: string
+          description: User or robot display name
+        location:
+          type: string
+          description: Location hint for cloud context (e.g., web, home, office)
+
+    # ------------------------------------------------------------------
+    # Inbound Messages
+    # ------------------------------------------------------------------
+    ConnectMessage:
+      type: object
+      description: |
+        Initiate or resume a session. Publish to
+        `aimeecloud/device/{deviceId}/connect`.
+      properties:
+        type:
+          type: string
+          enum: [connect]
+        user_profile:
+          $ref: '#/components/schemas/UserProfile'
+        capabilities:
+          $ref: '#/components/schemas/Capabilities'
+        tts_mode:
+          type: string
+          enum: [client, server]
+          description: |
+            `client` — robot synthesizes locally using `voice` metadata.
+            `server` — robot prefers `tts_audio` when provided.
+        request_session_id:
+          type: string
+          description: |
+            If provided and valid for the same device, the session is resumed.
+            Otherwise, a new session is created.
+      required:
+        - type
+
+    DisconnectMessage:
+      type: object
+      description: |
+        End an active session. Publish to
+        `aimeecloud/device/{deviceId}/in`.
+      properties:
+        type:
+          type: string
+          enum: [disconnect]
+        device_id:
+          type: string
+          description: Unique device identifier
+        session_id:
+          type: string
+          description: Active session ID to terminate
+      required:
+        - type
+        - device_id
+        - session_id
+
+    IntentMessage:
+      type: object
+      description: |
+        Routes through the built-in keyword classifier. Publish to
+        `aimeecloud/device/{deviceId}/in`.
+      properties:
+        type:
+          type: string
+          enum: [intent]
+        session_id:
+          type: string
+          description: Active session ID
+        payload:
+          type: string
+          description: Raw user input text
+      required:
+        - type
+        - session_id
+        - payload
+
+    GameMoveMessage:
+      type: object
+      description: |
+        Send a move to the currently active game. Publish to
+        `aimeecloud/device/{deviceId}/in`.
+      properties:
+        type:
+          type: string
+          enum: [game_move]
+        session_id:
+          type: string
+          description: Active session ID
+        game:
+          type: string
+          enum: [tic-tac-toe, yahtzee, candyland]
+          description: Game identifier
+        move:
+          type: object
+          description: Game-specific move payload
+          properties:
+            position:
+              type: integer
+              description: Board position (for tic-tac-toe)
+      required:
+        - type
+        - session_id
+        - game
+        - move
+
+    PingMessage:
+      type: object
+      description: |
+        Keep-alive ping. Publish to `aimeecloud/device/{deviceId}/in`.
+        The gateway responds with a `pong` on the `…/out` topic.
+      properties:
+        type:
+          type: string
+          enum: [ping]
+        session_id:
+          type: string
+          description: Active session ID
+      required:
+        - type
+        - session_id
+
+    AimeeAgentMessage:
+      type: object
+      description: |
+        Bypass the keyword router and send the request directly to the
+        LLM agent. Publish to `aimeecloud/device/{deviceId}/in`.
+      properties:
+        type:
+          type: string
+          enum: [AimeeAgent]
+        session_id:
+          type: string
+          description: Active session ID
+        payload:
+          type: string
+          description: Natural-language request for the LLM agent
+      required:
+        - type
+        - session_id
+        - payload
+
+    # ------------------------------------------------------------------
+    # Outbound Messages
+    # ------------------------------------------------------------------
+    SessionInitResponse:
+      type: object
+      description: |
+        Sent by the gateway when a session is created or resumed.
+        Received on `aimeecloud/device/{deviceId}/out`.
+      properties:
+        type:
+          type: string
+          enum: [session_init]
+        session_id:
+          type: string
+          description: Unique session identifier
+        device_id:
+          type: string
+          description: Device identifier
+        status:
+          type: string
+          enum: [connected]
+        expires_in:
+          type: integer
+          description: Seconds until session expires
+        ttl:
+          type: integer
+          description: Session TTL in seconds
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp
+      required:
+        - type
+        - session_id
+        - device_id
+        - status
+        - timestamp
+
+    ResponseMessage:
+      type: object
+      description: |
+        General outbound response from the gateway. Received on
+        `aimeecloud/device/{deviceId}/out`.
+      properties:
+        type:
+          type: string
+          enum: [response]
+        sub_type:
+          type: string
+          enum: [chat_response, robot_command, game_update, aimee_agent, pong, error]
+          description: |
+            - `chat_response` — General text/TTS reply.
+            - `robot_command` — Keyword-routed robot action.
+            - `game_update` — Game state update.
+            - `aimee_agent` — LLM-agent reply.
+            - `pong` — Reply to a ping.
+            - `error` — Error condition.
+        session_id:
+          type: string
+          description: Active session ID
+        device_id:
+          type: string
+          description: Device identifier
+        text:
+          type: string
+          description: Human-readable text response
+        tts:
+          type: string
+          description: Text optimized for TTS synthesis
+        voice:
+          $ref: '#/components/schemas/VoiceMetadata'
+        voice_segments:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoiceSegment'
+          description: Multi-character dialogue segments for rich storytelling
+        tts_audio:
+          $ref: '#/components/schemas/TtsAudio'
+        commands:
+          type: array
+          items:
+            $ref: '#/components/schemas/RobotCommand'
+          description: Structured robot commands to execute after (or concurrently with) TTS
+        game:
+          type: string
+          description: Game identifier (present for game_update)
+        state:
+          type: object
+          description: Game-specific state object (present for game_update)
+        context:
+          type: object
+          description: Agent context state (present for aimee_agent)
+          properties:
+            active_context:
+              type: string
+              nullable: true
+            context_stack:
+              type: array
+              items:
+                type: string
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - type
+        - sub_type
+        - session_id
+        - device_id
+        - timestamp
+
+    ErrorResponse:
+      type: object
+      description: Error response from the gateway
+      properties:
+        type:
+          type: string
+          enum: [response]
+        sub_type:
+          type: string
+          enum: [error]
+        session_id:
+          type: string
+        device_id:
+          type: string
+        error:
+          type: string
+          description: Machine-readable error code
+        text:
+          type: string
+          description: Human-readable error message
+        tts:
+          type: string
+          description: Error message optimized for TTS
+        voice:
+          $ref: '#/components/schemas/VoiceMetadata'
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - type
+        - sub_type
+        - error
+        - timestamp
+
+    SnapshotRequest:
+      type: object
+      description: |
+        Request sent by the gateway for the robot to capture and return
+        a photo. Published to `aimeecloud/device/{deviceId}/out` or
+        issued via the `/cloud/snapshot_request` ROS2 topic.
+      properties:
+        type:
+          type: string
+          enum: [snapshot_request]
+        session_id:
+          type: string
+        device_id:
+          type: string
+        request_id:
+          type: string
+          description: Unique ID for this snapshot request
+        camera:
+          type: string
+          description: Camera identifier (e.g., front, rear)
+        purpose:
+          type: string
+          description: Reason for the snapshot (e.g., analysis, game_board)
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - type
+        - request_id
+        - camera
+        - purpose
+
+    SnapshotResponse:
+      type: object
+      description: |
+        Robot's response to a snapshot request. Publish to
+        `aimeecloud/device/{deviceId}/in` or the
+        `/cloud/snapshot_response` ROS2 topic.
+      properties:
+        type:
+          type: string
+          enum: [snapshot_response]
+        session_id:
+          type: string
+        device_id:
+          type: string
+        request_id:
+          type: string
+          description: Echo back the request's request_id
+        success:
+          type: boolean
+        message:
+          type: string
+        format:
+          type: string
+          description: jpeg (only present on success)
+        image_base64:
+          type: string
+          description: Base64-encoded JPEG/PNG image (only present on success)
+        camera:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - type
+        - session_id
+        - request_id
+
+    # ------------------------------------------------------------------
+    # Native Audio Streaming (WebSocket /ws/v1)
+    # ------------------------------------------------------------------
+    AudioSessionStart:
+      type: object
+      description: First message sent by robot after WebSocket open
+      properties:
+        type:
+          type: string
+          enum: [session_start]
+        api_key:
+          type: string
+        device_id:
+          type: string
+        session_id:
+          type: string
+        provider:
+          type: string
+          enum: [gemini, openai]
+          description: Preferred audio-native LLM provider
+        capabilities:
+          type: object
+          properties:
+            audio_in:
+              type: object
+              properties:
+                codec:
+                  type: string
+                  enum: [opus, pcm16]
+                sample_rate:
+                  type: integer
+                channels:
+                  type: integer
+            audio_out:
+              type: object
+              properties:
+                codec:
+                  type: string
+                  enum: [opus, pcm16]
+                sample_rate:
+                  type: integer
+                channels:
+                  type: integer
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - type
+        - api_key
+        - device_id
+
+    AudioSessionReady:
+      type: object
+      description: Gateway response after successful session_start
+      properties:
+        type:
+          type: string
+          enum: [session_ready]
+        session_id:
+          type: string
+        status:
+          type: string
+          enum: [connected]
+        server_info:
+          type: object
+          properties:
+            model:
+              type: string
+            supported_codecs:
+              type: array
+              items:
+                type: string
+            provider:
+              type: string
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - type
+        - session_id
+        - status
+
+    AudioChunk:
+      type: object
+      description: JSON-wrapped PCM16 audio frame
+      properties:
+        type:
+          type: string
+          enum: [audio_chunk]
+        seq:
+          type: integer
+        format:
+          type: string
+          enum: [pcm16]
+        sample_rate:
+          type: integer
+        data:
+          type: string
+          description: Base64-encoded PCM16 audio
+      required:
+        - type
+        - seq
+        - format
+        - sample_rate
+        - data
+
+    VadEvent:
+      type: object
+      description: Voice Activity Detection state change
+      properties:
+        type:
+          type: string
+          enum: [vad_event]
+        event:
+          type: string
+          enum: [speech_start, speech_end]
+        timestamp_ms:
+          type: integer
+      required:
+        - type
+        - event
+
+    FunctionCallStart:
+      type: object
+      description: Cloud signals that a function call is being executed
+      properties:
+        type:
+          type: string
+          enum: [function_call_start]
+        call_id:
+          type: string
+        name:
+          type: string
+      required:
+        - type
+        - call_id
+        - name
+
+    FunctionCallEnd:
+      type: object
+      description: Cloud signals that a function call completed
+      properties:
+        type:
+          type: string
+          enum: [function_call_end]
+        call_id:
+          type: string
+        duration_ms:
+          type: integer
+        error:
+          type: string
+          description: Present only if execution failed
+      required:
+        - type
+        - call_id
+
+    AudioInterrupted:
+      type: object
+      description: Provider detected user barge-in
+      properties:
+        type:
+          type: string
+          enum: [interrupted]
+      required:
+        - type
+
+    AudioStreamError:
+      type: object
+      description: Recoverable or fatal error on the audio stream
+      properties:
+        type:
+          type: string
+          enum: [error]
+        code:
+          type: string
+          enum: [INVALID_PARAMS, INVALID_API_KEY, TIER_LIMIT_EXCEEDED, PROVIDER_ERROR, PROVIDER_CONNECT_FAILED, RATE_LIMIT_EXCEEDED, MESSAGE_PARSE_ERROR]
+        message:
+          type: string
+        recoverable:
+          type: boolean
+      required:
+        - type
+        - code
+        - message
+
+    # ------------------------------------------------------------------
+    # Voice & TTS
+    # ------------------------------------------------------------------
+    VoiceMetadata:
+      type: object
+      description: |
+        TTS voice metadata included in every outbound response
+        (except `session_init`). Tells the robot which voice to use
+        for local synthesis.
+      properties:
+        persona:
+          type: string
+          description: Abstract voice persona from the voice registry
+          example: aimee-default
+        provider:
+          type: string
+          description: Fallback TTS provider for local synthesis
+          example: lemonfox
+        id:
+          type: string
+          description: Provider-specific voice ID
+          example: sarah
+        lang:
+          type: string
+          description: Language code
+          example: en
+        description:
+          type: string
+          description: Human-readable voice description
+          example: Warm, friendly default Aimee voice
+      required:
+        - persona
+        - provider
+        - id
+        - lang
+
+    VoiceSegment:
+      type: object
+      description: |
+        A single segment in a multi-character dialogue. Used for
+        rich storytelling or dramatic readings.
+      properties:
+        speaker:
+          type: string
+          description: Character or speaker name
+          example: Narrator
+        text:
+          type: string
+          description: Text to synthesize for this segment
+          example: Once upon a time...
+        voice:
+          type: string
+          description: Voice ID or persona for this segment
+          example: narrator
+      required:
+        - speaker
+        - text
+        - voice
+
+    TtsAudio:
+      type: object
+      description: |
+        Server-generated TTS audio payload. Present when `tts_mode`
+        is `"server"` and the gateway has a TTS provider configured.
+      properties:
+        format:
+          type: string
+          enum: [mp3]
+          description: Audio encoding format
+        audio_base64:
+          type: string
+          description: Base64-encoded audio data
+        provider:
+          type: string
+          description: TTS provider that generated the audio
+          example: elevenlabs
+        voice_id:
+          type: string
+          description: Provider-specific voice ID used for generation
+      required:
+        - format
+        - audio_base64
+        - provider
+        - voice_id
+
+    # ------------------------------------------------------------------
+    # Robot Commands
+    # ------------------------------------------------------------------
+    RobotCommand:
+      type: object
+      description: |
+        Structured command for the robot to execute. Commands are
+        delivered in the `commands` array of outbound responses.
+      properties:
+        type:
+          type: string
+          enum: [motor, arm, gripper, snapshot, game_move, expression]
+          description: Command category
+        action:
+          type: string
+          description: |
+            Action to perform. Examples:
+            - motor: forward, backward, left, right, stop
+            - arm: raise, lower, wave
+            - gripper: open, close
+        duration_ms:
+          type: integer
+          description: Duration for motor commands in milliseconds
+        camera:
+          type: string
+          description: Camera identifier for snapshot commands
+        purpose:
+          type: string
+          description: Purpose for snapshot commands
+        game:
+          type: string
+          description: Game identifier for game_move commands
+        position:
+          type: integer
+          description: Board position for game_move commands
+      required:
+        - type
+      discriminator:
+        propertyName: type
+        mapping:
+          motor: '#/components/schemas/RobotCommand'
+          arm: '#/components/schemas/RobotCommand'
+          gripper: '#/components/schemas/RobotCommand'
+          snapshot: '#/components/schemas/RobotCommand'
+          game_move: '#/components/schemas/RobotCommand'
+
+    # ------------------------------------------------------------------
+    # System Messages
+    # ------------------------------------------------------------------
+    SystemMessage:
+      type: object
+      description: |
+        Operational or system-level message sent by operators or
+        deployment tools. Received on
+        `aimeecloud/device/{deviceId}/system`.
+      properties:
+        type:
+          type: string
+          enum: [protocol_update, config_update, diagnostics_request, restart, firmware_available]
+          description: System message category
+        device_id:
+          type: string
+        msg_id:
+          type: string
+          description: Unique message identifier
+        version:
+          type: string
+          description: Protocol or firmware version
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - type
+        - device_id
+        - timestamp

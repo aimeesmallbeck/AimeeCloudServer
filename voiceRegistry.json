@@ -1,0 +1,69 @@
+{
+  "default": "aimee-default",
+  "voices": {
+    "aimee-default": {
+      "providers": [
+        { "provider": "elevenlabs", "voice_id": "XB0fDUnXU5powFXDhCwa", "model": "eleven_turbo_v2_5" },
+        { "provider": "lemonfox", "id": "sarah", "lang": "en" },
+        { "provider": "gtts", "lang": "en" }
+      ],
+      "description": "Warm, friendly default Aimee voice"
+    },
+    "aimee-surprised": {
+      "providers": [
+        { "provider": "elevenlabs", "voice_id": "XB0fDUnXU5powFXDhCwa", "model": "eleven_turbo_v2_5" },
+        { "provider": "lemonfox", "id": "jessica", "lang": "en" },
+        { "provider": "gtts", "lang": "en" }
+      ],
+      "description": "Expressive, bright voice for surprises and excitement"
+    },
+    "aimee-calm": {
+      "providers": [
+        { "provider": "elevenlabs", "voice_id": "XrExE9yKIg1WjnnlVkGX", "model": "eleven_turbo_v2_5" },
+        { "provider": "lemonfox", "id": "echo", "lang": "en" },
+        { "provider": "gtts", "lang": "en" }
+      ],
+      "description": "Soothing, reassuring tone"
+    },
+    "narrator": {
+      "providers": [
+        { "provider": "elevenlabs", "voice_id": "bIHbv24MWmeRgasZH58o", "model": "eleven_turbo_v2_5" },
+        { "provider": "lemonfox", "id": "liam", "lang": "en" },
+        { "provider": "gtts", "lang": "en" }
+      ],
+      "description": "Calm narrator for stories and introductions"
+    },
+    "character-wizard": {
+      "providers": [
+        { "provider": "elevenlabs", "voice_id": "bIHbv24MWmeRgasZH58o", "model": "eleven_turbo_v2_5" },
+        { "provider": "lemonfox", "id": "adam", "lang": "en" },
+        { "provider": "gtts", "lang": "en" }
+      ],
+      "description": "Elderly male character voice"
+    },
+    "character-dragon": {
+      "providers": [
+        { "provider": "elevenlabs", "voice_id": "VR6AewLTigWG4xSOukaG", "model": "eleven_turbo_v2_5" },
+        { "provider": "lemonfox", "id": "onyx", "lang": "en" },
+        { "provider": "gtts", "lang": "en" }
+      ],
+      "description": "Deep, gruff creature voice"
+    },
+    "character-fairy": {
+      "providers": [
+        { "provider": "elevenlabs", "voice_id": "XB0fDUnXU5powFXDhCwa", "model": "eleven_turbo_v2_5" },
+        { "provider": "lemonfox", "id": "fable", "lang": "en" },
+        { "provider": "gtts", "lang": "en" }
+      ],
+      "description": "Light, playful female voice"
+    },
+    "game-announcer": {
+      "providers": [
+        { "provider": "elevenlabs", "voice_id": "VR6AewLTigWG4xSOukaG", "model": "eleven_turbo_v2_5" },
+        { "provider": "lemonfox", "id": "echo", "lang": "en" },
+        { "provider": "gtts", "lang": "en" }
+      ],
+      "description": "Neutral voice for game updates"
+    }
+  }
+}

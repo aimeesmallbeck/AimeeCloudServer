@@ -1,0 +1,20 @@
+{
+  "free": {
+    "name": "Hobbyist",
+    "max_concurrent_sessions": 2,
+    "max_sessions_per_day": 10,
+    "max_api_calls_per_minute": 5,
+    "max_concurrent_audio_streams": 1,
+    "features": ["basic_games", "basic_conversation"],
+    "tts_mode": "client"
+  },
+  "paid": {
+    "name": "Manufacturer",
+    "max_concurrent_sessions": 100,
+    "max_sessions_per_day": -1,
+    "max_api_calls_per_minute": -1,
+    "max_concurrent_audio_streams": -1,
+    "features": ["all_games", "all_conversation", "agent_workflow", "server_tts"],
+    "tts_mode": "server"
+  }
+}
