@@ -258,7 +258,6 @@ There is no formal build step or automated test suite — testing is manual.
 | [`VISION_ACTION_PLAN.md`](VISION_ACTION_PLAN.md) | Vision-driven detect & pick pipeline |
 | [`AGENTS.md`](AGENTS.md) | Full developer/agent guide to the codebase |
 | [`docs/openapi-spec.yaml`](docs/openapi-spec.yaml) | OpenAPI 3.0 spec for the REST API |
-| [`AIMEECLOUD_PITCH.md`](AIMEECLOUD_PITCH.md) | Product/business overview |
 
 ---
 
